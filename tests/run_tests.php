@@ -8,6 +8,7 @@ require_once dirname(__DIR__) . '/app/services/SnapshotResetter.php';
 require_once dirname(__DIR__) . '/app/services/ProgressService.php';
 require_once dirname(__DIR__) . '/app/services/CustomModuleService.php';
 require_once dirname(__DIR__) . '/app/services/ExtraModuleService.php';
+require_once dirname(__DIR__) . '/app/services/QuizEngine.php';
 
 if (session_status() === PHP_SESSION_NONE) {
     @session_start();
@@ -187,6 +188,74 @@ test_case('ExtraModuleService CRUD & file cleanup with temporary .md', function 
         if (is_file($tmpFile)) {
             @unlink($tmpFile);
         }
+    }
+});
+
+test_case('Quiz bank Modul 1-5 contract validation', function (): void {
+    $allowedTypes = ['mcq', 'output_trace', 'syntax_debug'];
+    for ($m = 1; $m <= 5; $m++) {
+        $qs = QuizEngine::loadQuestions($m);
+        assert_true(count($qs) === 5, "Modul {$m} harus memiliki tepat 5 soal");
+        $ids = [];
+        foreach ($qs as $q) {
+            assert_true(!empty($q['id']) && !in_array($q['id'], $ids, true), "ID soal Modul {$m} harus unik");
+            $ids[] = $q['id'];
+            assert_true(in_array($q['type'], $allowedTypes, true), "Tipe soal {$q['id']} tidak valid");
+            assert_true(count($q['options']) === 4, "Opsi soal {$q['id']} harus 4");
+            assert_true(array_key_exists($q['correct_key'], $q['options']), "correct_key {$q['id']} harus ada di options");
+            assert_true(trim((string) $q['explanation']) !== '', "Pembahasan {$q['id']} wajib diisi");
+        }
+    }
+});
+
+test_case('QuizEngine evaluateAndSave, threshold 75%, progress upsert & IDOR check', function (): void {
+    $app = get_db_connection('app');
+    $testUser = 'quiz_test_' . bin2hex(random_bytes(4));
+    $ins = $app->prepare('INSERT INTO app_users (nim_or_username, nama_lengkap, password_hash) VALUES (:u, :n, :p)');
+    $ins->execute([
+        ':u' => $testUser,
+        ':n' => 'Quiz Tester',
+        ':p' => password_hash('secret123', PASSWORD_DEFAULT),
+    ]);
+    $uid = (int) $app->lastInsertId();
+
+    try {
+        $qs = QuizEngine::loadQuestions(1);
+        $passAnswers = [];
+        foreach ($qs as $idx => $q) {
+            // 4 benar, 1 salah -> 80% (>= 75% => paham)
+            $passAnswers[$q['id']] = ($idx < 4) ? $q['correct_key'] : 'D';
+            if ($idx === 4 && $q['correct_key'] === 'D') {
+                $passAnswers[$q['id']] = 'A';
+            }
+        }
+        $resPass = QuizEngine::evaluateAndSave($app, $uid, 1, $passAnswers, 42);
+        assert_true($resPass['score_percent'] === 80.0, 'Skor 4/5 harus 80%');
+        assert_true($resPass['passed'] === true, '80% harus lulus');
+        assert_true($resPass['status'] === 'paham', 'Status harus paham');
+
+        // IDOR check: user lain tidak boleh bisa membaca attempt ini
+        assert_true(QuizEngine::getAttemptById($app, 999999, $resPass['attempt_id']) === null, 'IDOR attempt harus ditolak');
+        assert_true(QuizEngine::getAttemptById($app, $uid, $resPass['attempt_id']) !== null, 'Pemilik harus bisa membaca attempt');
+
+        // 2 benar, 3 salah -> 40% (< 75% => ulang)
+        $failAnswers = [];
+        foreach ($qs as $idx => $q) {
+            $wrong = $q['correct_key'] === 'A' ? 'B' : 'A';
+            $failAnswers[$q['id']] = ($idx < 2) ? $q['correct_key'] : $wrong;
+        }
+        $resFail = QuizEngine::evaluateAndSave($app, $uid, 1, $failAnswers, 15);
+        assert_true($resFail['score_percent'] === 40.0, 'Skor 2/5 harus 40%');
+        assert_true($resFail['passed'] === false, '40% harus tidak lulus');
+        assert_true($resFail['status'] === 'ulang', 'Status harus ulang');
+
+        $prog = $app->prepare('SELECT status, last_score FROM app_learning_progress WHERE user_id = :uid AND modul_no = 1');
+        $prog->execute([':uid' => $uid]);
+        $row = $prog->fetch();
+        assert_true($row && $row['status'] === 'ulang' && (float) $row['last_score'] === 40.0, 'Progress terakhir harus ter-upsert');
+    } finally {
+        $del = $app->prepare('DELETE FROM app_users WHERE id = :id');
+        $del->execute([':id' => $uid]);
     }
 });
 
