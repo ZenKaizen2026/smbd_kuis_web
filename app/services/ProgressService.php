@@ -23,13 +23,11 @@ final class ProgressService
             $progressByModul[(int) $row['modul_no']] = $row;
         }
 
-        $noteStmt = $pdo->prepare(
+        $noteStmt = $pdo->query(
             'SELECT modul_no, COUNT(*) AS total_notes
              FROM app_custom_modules
-             WHERE user_id = :uid
              GROUP BY modul_no'
         );
-        $noteStmt->execute([':uid' => $userId]);
         $notesCount = [];
         foreach ($noteStmt->fetchAll() as $n) {
             $notesCount[(int) $n['modul_no']] = (int) $n['total_notes'];

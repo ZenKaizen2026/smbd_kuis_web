@@ -32,6 +32,12 @@ function current_user(): ?array
     ];
 }
 
+function is_admin_user(?array $user = null): bool
+{
+    $target = $user ?? current_user();
+    return $target !== null && ($target['nim_or_username'] ?? '') === 'mahasiswa_demo';
+}
+
 function require_auth(): array
 {
     $user = current_user();

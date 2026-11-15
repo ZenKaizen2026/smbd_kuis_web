@@ -108,8 +108,11 @@ test_case('ProgressService & CustomModuleService CRUD + IDOR check', static func
     $noteId = (int) $created['id'];
 
     try {
-        $list = CustomModuleService::listByUser($app, $demoId, 3);
-        assert_true(count($list) >= 1, 'Expected at least 1 custom note for Modul 3');
+        assert_true(is_admin_user(['nim_or_username' => 'mahasiswa_demo']) === true, 'mahasiswa_demo must be admin');
+        assert_true(is_admin_user(['nim_or_username' => 'mhs_biasa']) === false, 'Regular student must not be admin');
+
+        $list = CustomModuleService::listAll($app, 3);
+        assert_true(count($list) >= 1, 'Expected at least 1 custom note in listAll for Modul 3');
 
         // IDOR check: user ID lain (999999) tidak boleh bisa menghapus catatan user ini
         $idorDelete = CustomModuleService::delete($app, 999999, $noteId);
