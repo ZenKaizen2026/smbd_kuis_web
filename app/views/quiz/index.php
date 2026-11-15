@@ -88,7 +88,7 @@ $typeLabels = [
           <p class="font-semibold mb-3" style="margin-top:0;"><?= e($item['question']) ?></p>
 
           <?php if (!empty($item['code_snippet'])): ?>
-            <pre class="font-mono text-xs p-3 mb-3" style="background:#0F172A;color:#E2E8F0;border-radius:0.5rem;overflow-x:auto;margin-top:0;"><?= e((string) $item['code_snippet']) ?></pre>
+            <?= render_acrylic_code((string) $item['code_snippet'], 'modul_' . $modulNo . '_soal_' . ($idx + 1) . '.sql', 'SQL', 'mb-3') ?>
           <?php endif; ?>
 
           <div class="mb-3" style="display:flex;flex-direction:column;gap:0.4rem;">
@@ -142,7 +142,7 @@ $typeLabels = [
           <h2 class="text-base font-semibold mb-3" style="margin-top:0;"><?= e($q['question']) ?></h2>
 
           <?php if (!empty($q['code_snippet'])): ?>
-            <pre class="font-mono text-xs p-3 mb-3" style="background:#0F172A;color:#E2E8F0;border-radius:0.5rem;overflow-x:auto;margin-top:0;"><?= e((string) $q['code_snippet']) ?></pre>
+            <?= render_acrylic_code((string) $q['code_snippet'], 'modul_' . $modulNo . '_soal_' . ($idx + 1) . '.sql', 'SQL', 'mb-3') ?>
           <?php endif; ?>
 
           <div style="display:flex;flex-direction:column;gap:0.5rem;">
