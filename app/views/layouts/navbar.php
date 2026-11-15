@@ -67,6 +67,20 @@ $initial = strtoupper(mb_substr($user['nama_lengkap'] ?? 'M', 0, 1));
           <span class="sidebar-label">Simulasi Lab</span>
         </a>
       </nav>
+
+      <?php if (is_admin($user)): ?>
+        <div class="sidebar-section-label" style="margin-top:0.5rem;">Admin</div>
+        <nav class="sidebar-nav">
+          <a href="admin_modul.php" class="sidebar-item <?= $activeNav === 'admin_modul' ? 'active' : '' ?>" title="Tambah Modul (.md / .pdf)">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+              <polyline points="17 8 12 3 7 8"></polyline>
+              <line x1="12" y1="3" x2="12" y2="15"></line>
+            </svg>
+            <span class="sidebar-label">Tambah Modul</span>
+          </a>
+        </nav>
+      <?php endif; ?>
     </div>
 
     <div class="sidebar-footer">

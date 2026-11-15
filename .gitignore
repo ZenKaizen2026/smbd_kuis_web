@@ -2,6 +2,7 @@
 Penting.txt
 .env
 storage/logs/*.log
+storage/uploads/
 vendor/
 .DS_Store
 Thumbs.db

@@ -1,6 +1,8 @@
 <?php
 declare(strict_types=1);
 
+require_once __DIR__ . '/ExtraModuleService.php';
+
 /**
  * Mengambil ringkasan progres Modul 1-5 dan riwayat percobaan kuis mahasiswa.
  */
@@ -23,11 +25,13 @@ final class ProgressService
             $progressByModul[(int) $row['modul_no']] = $row;
         }
 
-        $noteStmt = $pdo->query(
+        $noteStmt = $pdo->prepare(
             'SELECT modul_no, COUNT(*) AS total_notes
              FROM app_custom_modules
+             WHERE user_id = :uid
              GROUP BY modul_no'
         );
+        $noteStmt->execute([':uid' => $userId]);
         $notesCount = [];
         foreach ($noteStmt->fetchAll() as $n) {
             $notesCount[(int) $n['modul_no']] = (int) $n['total_notes'];
@@ -63,6 +67,7 @@ final class ProgressService
 
         return [
             'modules'         => $modules,
+            'extra_modules'   => ExtraModuleService::listAll($pdo),
             'paham_count'     => $pahamCount,
             'total_modules'   => count($catalog),
             'recent_attempts' => $attemptStmt->fetchAll(),
