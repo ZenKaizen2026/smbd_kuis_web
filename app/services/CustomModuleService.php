@@ -6,6 +6,27 @@ declare(strict_types=1);
  */
 final class CustomModuleService
 {
+    public static function listAll(PDO $pdo, ?int $modulNo = null): array
+    {
+        if ($modulNo !== null && $modulNo >= 1 && $modulNo <= 5) {
+            $stmt = $pdo->prepare(
+                'SELECT id, user_id, modul_no, judul, isi_materi, contoh_sql, created_at
+                 FROM app_custom_modules
+                 WHERE modul_no = :m
+                 ORDER BY created_at DESC, id DESC'
+            );
+            $stmt->execute([':m' => $modulNo]);
+            return $stmt->fetchAll();
+        }
+
+        $stmt = $pdo->query(
+            'SELECT id, user_id, modul_no, judul, isi_materi, contoh_sql, created_at
+             FROM app_custom_modules
+             ORDER BY modul_no ASC, created_at DESC, id DESC'
+        );
+        return $stmt->fetchAll();
+    }
+
     public static function listByUser(PDO $pdo, int $userId, ?int $modulNo = null): array
     {
         if ($modulNo !== null && $modulNo >= 1 && $modulNo <= 5) {
