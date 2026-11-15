@@ -7,6 +7,7 @@ require_once dirname(__DIR__) . '/app/helpers/auth.php';
 require_once dirname(__DIR__) . '/app/services/SnapshotResetter.php';
 require_once dirname(__DIR__) . '/app/services/ProgressService.php';
 require_once dirname(__DIR__) . '/app/services/CustomModuleService.php';
+require_once dirname(__DIR__) . '/app/services/ExtraModuleService.php';
 
 if (session_status() === PHP_SESSION_NONE) {
     @session_start();
@@ -108,11 +109,8 @@ test_case('ProgressService & CustomModuleService CRUD + IDOR check', static func
     $noteId = (int) $created['id'];
 
     try {
-        assert_true(is_admin_user(['nim_or_username' => 'mahasiswa_demo']) === true, 'mahasiswa_demo must be admin');
-        assert_true(is_admin_user(['nim_or_username' => 'mhs_biasa']) === false, 'Regular student must not be admin');
-
-        $list = CustomModuleService::listAll($app, 3);
-        assert_true(count($list) >= 1, 'Expected at least 1 custom note in listAll for Modul 3');
+        $list = CustomModuleService::listByUser($app, $demoId, 3);
+        assert_true(count($list) >= 1, 'Expected at least 1 custom note for Modul 3');
 
         // IDOR check: user ID lain (999999) tidak boleh bisa menghapus catatan user ini
         $idorDelete = CustomModuleService::delete($app, 999999, $noteId);
@@ -122,6 +120,73 @@ test_case('ProgressService & CustomModuleService CRUD + IDOR check', static func
         assert_true($ownerDelete === true, 'Owner delete failed');
     } finally {
         CustomModuleService::delete($app, $demoId, $noteId);
+    }
+});
+
+test_case('is_admin only grants admin to mahasiswa_demo', function (): void {
+    assert_true(is_admin(['nim_or_username' => 'mahasiswa_demo']), 'mahasiswa_demo harus dikenali sebagai admin');
+    assert_true(!is_admin(['nim_or_username' => 'mahasiswa_lain']), 'user biasa bukan admin');
+    assert_true(!is_admin(null), 'null bukan admin');
+});
+
+test_case('ExtraModuleService::parseMarkdown extracts metadata and escapes XSS', function (): void {
+    $md = "# Judul Ekstra\n\n## Topik A\nPenjelasan ringkas materi.\n\n## Topik B\n<script>alert('xss')</script>";
+    $parsed = ExtraModuleService::parseMarkdown($md);
+
+    assert_true($parsed['title'] === 'Judul Ekstra', 'Judul harus diambil dari heading H1');
+    assert_true(in_array('Topik A', $parsed['topics'], true), 'Topik A harus terdeteksi');
+    assert_true(in_array('Topik B', $parsed['topics'], true), 'Topik B harus terdeteksi');
+    assert_true(str_contains($parsed['summary'], 'Penjelasan ringkas materi.'), 'Summary harus berisi paragraf');
+    assert_true(!str_contains($parsed['html'], '<script>'), 'Tag script mentah tidak boleh lolos ke HTML');
+    assert_true(str_contains($parsed['html'], '&lt;script&gt;'), 'Tag script harus di-escape');
+});
+
+test_case('ExtraModuleService CRUD & file cleanup with temporary .md', function (): void {
+    $app = get_db_connection('app');
+    $stmt = $app->prepare("SELECT id FROM app_users WHERE nim_or_username = 'mahasiswa_demo' LIMIT 1");
+    $stmt->execute();
+    $demoId = (int) $stmt->fetchColumn();
+    assert_true($demoId > 0, 'Demo admin user harus tersedia');
+
+    $tmpFile = tempnam(sys_get_temp_dir(), 'smbd_mod_');
+    assert_true($tmpFile !== false, 'Gagal membuat file sementara');
+    file_put_contents($tmpFile, "# Modul Uji Ekstra\n\n## Subtopik Satu\nKonten pengujian upload markdown.\n");
+
+    $createdId = 0;
+    try {
+        $created = ExtraModuleService::processAndCreate(
+            $app,
+            $demoId,
+            [
+                'name' => 'uji_ekstra.md',
+                'tmp_name' => $tmpFile,
+                'size' => filesize($tmpFile),
+                'error' => UPLOAD_ERR_OK,
+            ],
+            'MOD-TEST',
+            'Judul Override Uji'
+        );
+
+        assert_true($created['ok'] === true, 'processAndCreate harus mengembalikan ok=true');
+        $createdId = (int) $created['id'];
+        assert_true($createdId > 0, 'ID modul ekstra harus > 0');
+
+        $found = ExtraModuleService::findById($app, $createdId);
+        assert_true($found !== null, 'findById harus menemukan modul ekstra');
+        assert_true($found['judul'] === 'Judul Override Uji', 'Custom title harus dipakai');
+        assert_true($found['source_type'] === 'md', 'source_type harus md');
+
+        $all = ExtraModuleService::listAll($app);
+        $ids = array_map(static fn (array $r): int => (int) $r['id'], $all);
+        assert_true(in_array($createdId, $ids, true), 'listAll harus memuat modul yang baru dibuat');
+    } finally {
+        if ($createdId > 0) {
+            $deleted = ExtraModuleService::delete($app, $createdId);
+            assert_true($deleted, 'delete harus berhasil menghapus record & file');
+        }
+        if (is_file($tmpFile)) {
+            @unlink($tmpFile);
+        }
     }
 });
 

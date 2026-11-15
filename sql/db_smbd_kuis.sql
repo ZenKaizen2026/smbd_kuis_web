@@ -53,3 +53,19 @@ CREATE TABLE IF NOT EXISTS `app_custom_modules` (
   KEY `idx_custom_mod_user` (`user_id`, `modul_no`),
   CONSTRAINT `fk_custom_mod_user` FOREIGN KEY (`user_id`) REFERENCES `app_users` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+CREATE TABLE IF NOT EXISTS `app_extra_modules` (
+  `id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `created_by` INT UNSIGNED NOT NULL,
+  `modul_code` VARCHAR(30) NOT NULL,
+  `judul` VARCHAR(150) NOT NULL,
+  `ringkasan` VARCHAR(300) NOT NULL,
+  `topik_json` JSON NOT NULL,
+  `konten_html` MEDIUMTEXT NOT NULL,
+  `source_type` ENUM('md', 'pdf') NOT NULL,
+  `stored_filename` VARCHAR(120) NOT NULL,
+  `original_filename` VARCHAR(255) NOT NULL,
+  `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  CONSTRAINT `fk_extra_mod_user` FOREIGN KEY (`created_by`) REFERENCES `app_users` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;

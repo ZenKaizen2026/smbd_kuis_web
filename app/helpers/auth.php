@@ -32,18 +32,27 @@ function current_user(): ?array
     ];
 }
 
-function is_admin_user(?array $user = null): bool
-{
-    $target = $user ?? current_user();
-    return $target !== null && ($target['nim_or_username'] ?? '') === 'mahasiswa_demo';
-}
-
 function require_auth(): array
 {
     $user = current_user();
     if ($user === null) {
         set_flash('error', 'Silakan login terlebih dahulu untuk mengakses halaman ini.');
         redirect_to('login.php');
+    }
+    return $user;
+}
+
+function is_admin(?array $user): bool
+{
+    return $user !== null && ($user['nim_or_username'] ?? '') === 'mahasiswa_demo';
+}
+
+function require_admin(): array
+{
+    $user = require_auth();
+    if (!is_admin($user)) {
+        set_flash('error', 'Akses ditolak: fitur Tambah Modul hanya untuk Admin.');
+        redirect_to('dashboard.php');
     }
     return $user;
 }

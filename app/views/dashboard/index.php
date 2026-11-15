@@ -103,6 +103,57 @@ $pct = $summary['total_modules'] > 0
     </div>
   </section>
 
+  <?php if (!empty($summary['extra_modules']) || is_admin($user)): ?>
+    <section class="mt-6" aria-label="Modul Tambahan">
+      <div class="flex items-center justify-between gap-2 mb-4 flex-wrap">
+        <div>
+          <h2 class="text-lg font-bold" style="margin:0;">Modul Tambahan (Kurikulum Ekstra)</h2>
+          <p class="text-xs text-muted" style="margin:0.15rem 0 0;">Materi tambahan yang diunggah dan diproses oleh Admin dari berkas <code class="font-mono">.md</code> / <code class="font-mono">.pdf</code>.</p>
+        </div>
+        <?php if (is_admin($user)): ?>
+          <a href="admin_modul.php" class="btn btn-primary btn-sm">+ Tambah Modul</a>
+        <?php endif; ?>
+      </div>
+
+      <?php if (empty($summary['extra_modules'])): ?>
+        <div class="card card-static p-6 text-sm text-muted">
+          Belum ada modul tambahan yang diunggah oleh Admin.
+        </div>
+      <?php else: ?>
+        <div class="grid grid-3 gap-4" style="gap:1.25rem;">
+          <?php foreach ($summary['extra_modules'] as $em): ?>
+            <article class="card module-card">
+              <div class="module-banner module-banner--3">
+                <span class="pill-glass"><?= e($em['modul_code']) ?></span>
+                <span class="badge"><?= strtoupper(e($em['source_type'])) ?></span>
+                <svg class="module-banner-art" width="96" height="96" viewBox="0 0 24 24" fill="none" stroke="#312E81" stroke-width="1.3" aria-hidden="true">
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                  <polyline points="14 2 14 8 20 8"></polyline>
+                </svg>
+              </div>
+              <div class="module-body">
+                <h3 class="text-lg font-bold" style="margin:0 0 0.25rem;"><?= e($em['judul']) ?></h3>
+                <p class="text-xs text-muted" style="margin:0;">Sumber: <code class="font-mono"><?= e($em['original_filename']) ?></code></p>
+                <div class="meta-strip" style="grid-template-columns:repeat(2,1fr);">
+                  <div class="meta-cell">
+                    <span class="meta-label"><?= count($em['topics']) ?> Subtopik</span>
+                  </div>
+                  <div class="meta-cell">
+                    <span class="meta-label"><?= strtoupper(e($em['source_type'])) ?> Terproses</span>
+                  </div>
+                </div>
+                <p class="text-sm text-muted" style="margin:0;line-height:1.55;"><?= e($em['ringkasan']) ?></p>
+              </div>
+              <div class="module-footer">
+                <a href="modul_view.php?id=<?= (int) $em['id'] ?>" class="btn btn-primary btn-sm w-full">Baca Materi</a>
+              </div>
+            </article>
+          <?php endforeach; ?>
+        </div>
+      <?php endif; ?>
+    </section>
+  <?php endif; ?>
+
   <?php if (!empty($summary['recent_attempts'])): ?>
     <section class="card card-static p-6 mt-6">
       <h2 class="text-lg font-bold mb-4" style="margin-top:0;">Riwayat Percobaan Kuis Terakhir</h2>
