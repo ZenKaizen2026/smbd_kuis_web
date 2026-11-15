@@ -4,6 +4,7 @@ declare(strict_types=1);
 require_once dirname(__DIR__) . '/app/config/database.php';
 require_once dirname(__DIR__) . '/app/helpers/csrf.php';
 require_once dirname(__DIR__) . '/app/helpers/auth.php';
+require_once dirname(__DIR__) . '/app/helpers/code_ui.php';
 require_once dirname(__DIR__) . '/app/services/SnapshotResetter.php';
 require_once dirname(__DIR__) . '/app/services/ProgressService.php';
 require_once dirname(__DIR__) . '/app/services/CustomModuleService.php';
@@ -257,6 +258,14 @@ test_case('QuizEngine evaluateAndSave, threshold 75%, progress upsert & IDOR che
         $del = $app->prepare('DELETE FROM app_users WHERE id = :id');
         $del->execute([':id' => $uid]);
     }
+});
+
+test_case('render_acrylic_code highlights SQL safely and escapes XSS', function (): void {
+    $html = render_acrylic_code("SELECT * FROM Produk WHERE Nama = '<script>alert(1)</script>';", 'uji.sql', 'SQL');
+    assert_true(str_contains($html, 'acrylic-code-card'), 'Harus memakai class acrylic-code-card');
+    assert_true(str_contains($html, 'tok-keyword'), 'Harus menyorot keyword SQL');
+    assert_true(!str_contains($html, '<script>'), 'Tag script mentah tidak boleh lolos');
+    assert_true(str_contains($html, '&lt;script&gt;'), 'Tag script harus di-escape');
 });
 
 echo "\nSummary: {$passed} passed, {$failed} failed.\n";
