@@ -43,29 +43,42 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($action === 'reset_snapshot') {
             SnapshotResetter::resetLabDatabase();
             set_flash('success', 'Snapshot db_penjualan_lab berhasil di-reset ke kondisi awal (P001 stok 97, LogKasir bersih).');
-            redirect_to("sim.php?modul={$postModul}");
-        } elseif ($action === 'run_scenario') {
+            redirect_to("sim.php?modul={$postModul}&scenario=" . urlencode($selectedScenarioId));
+        } elseif ($action === 'run_practice') {
             $scenarioId = (string) ($_POST['scenario_id'] ?? $selectedScenarioId);
-            $params = is_array($_POST['params'] ?? null) ? $_POST['params'] : [];
-            $result = SimulatorSandbox::run($scenarioId, $params);
+            $userSql = (string) ($_POST['user_sql'] ?? '');
+            $result = SimulatorSandbox::executePracticeQuery($scenarioId, $userSql);
             $_SESSION['sim_last_result'] = [
                 'scenario_id' => $scenarioId,
-                'params' => $params,
+                'user_sql' => $userSql,
                 'result' => $result,
             ];
             redirect_to("sim.php?modul={$postModul}&scenario=" . urlencode($scenarioId));
+        } elseif ($action === 'run_stepper') {
+            $scenarioId = 'm1_norm_stepper';
+            $stage = (string) ($_POST['stage'] ?? 'unf');
+            $result = SimulatorSandbox::run($scenarioId, ['stage' => $stage]);
+            $_SESSION['sim_last_result'] = [
+                'scenario_id' => $scenarioId,
+                'user_sql' => (string) ($_POST['user_sql'] ?? ''),
+                'stage' => $stage,
+                'result' => $result,
+            ];
+            redirect_to("sim.php?modul=1&scenario=m1_norm_stepper");
         }
     }
 }
 
 $simResult = null;
-$lastParams = [];
+$lastUserSql = '';
+$lastStage = 'unf';
 if (isset($_SESSION['sim_last_result']) && is_array($_SESSION['sim_last_result'])) {
     $saved = $_SESSION['sim_last_result'];
     unset($_SESSION['sim_last_result']);
     if (($saved['scenario_id'] ?? '') === $selectedScenarioId) {
         $simResult = $saved['result'] ?? null;
-        $lastParams = is_array($saved['params'] ?? null) ? $saved['params'] : [];
+        $lastUserSql = (string) ($saved['user_sql'] ?? '');
+        $lastStage = (string) ($saved['stage'] ?? 'unf');
     }
 }
 
@@ -77,7 +90,7 @@ foreach ($modulScenarios as $s) {
     }
 }
 
-$pageTitle = "Simulasi Lab Modul {$modulNo}";
+$pageTitle = "Simulasi Praktek Modul {$modulNo}";
 $activeNav = 'sim';
 $useAppShell = true;
 

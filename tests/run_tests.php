@@ -317,5 +317,35 @@ test_case('SimulatorSandbox runs all 11 whitelisted scenarios & resets cleanly',
     }
 });
 
+test_case('SimulatorSandbox::executePracticeQuery validates safety, SQL execution & muscle-memory match', function (): void {
+    SnapshotResetter::resetLabDatabase();
+    try {
+        $blocked = SimulatorSandbox::executePracticeQuery('m1_norm_stepper', 'DROP TABLE produk;');
+        assert_true($blocked['ok'] === false && $blocked['matched_instruction'] === false, 'DROP TABLE harus diblokir');
+
+        $multi = SimulatorSandbox::executePracticeQuery('m1_norm_stepper', 'SELECT * FROM nota; DELETE FROM nota;');
+        assert_true($multi['ok'] === false && $multi['matched_instruction'] === false, 'Multi-statement harus diblokir');
+
+        $fk = SimulatorSandbox::executePracticeQuery('m2_constraint_fk', "INSERT INTO itemnota (Nonota, KodeProduk, banyak, hargajual) VALUES ('9999999999', 'P999', 1, 2500);");
+        assert_true($fk['matched_instruction'] === true, 'Praktek FK harus mendeteksi error FK sebagai tepat');
+
+        $join = SimulatorSandbox::executePracticeQuery('m3_join_inner_left', 'SELECT c.KodeCus AS Kode, n.Nonota FROM customer c LEFT JOIN nota n ON c.KodeCus = n.KodeCus;');
+        assert_true($join['ok'] === true && $join['matched_instruction'] === true && ($join['trace']['kind'] ?? '') === 'venn', 'Praktek JOIN harus cocok & mengembalikan diagram Venn');
+
+        $udf = SimulatorSandbox::executePracticeQuery('m4_udf_cek_stok', "SELECT fcCekStok('P001') AS cekstok;");
+        assert_true($udf['ok'] === true && $udf['matched_instruction'] === true && (int) ($udf['after'][0]['cekstok'] ?? 0) === 97, 'Praktek UDF harus mengembalikan 97');
+
+        $sp = SimulatorSandbox::executePracticeQuery('m4_sp_bonus_point', 'CALL ProcBonusPoint();');
+        assert_true($sp['ok'] === true && $sp['matched_instruction'] === true && ($sp['trace']['kind'] ?? '') === 'cursor', 'Praktek SP harus mengembalikan cursor trace');
+
+        $tg = SimulatorSandbox::executePracticeQuery('m5_tg_insert_item', "INSERT INTO itemnota (Nonota, KodeProduk, banyak, hargajual) VALUES ('2611130001', 'P001', 2, 2100);");
+        assert_true($tg['ok'] === true && $tg['matched_instruction'] === true, 'Praktek trigger insert harus berhasil');
+        $p001 = array_values(array_filter($tg['after'], static fn (array $r): bool => $r['KodeProduk'] === 'P001'));
+        assert_true((int) ($p001[0]['stok'] ?? 0) === 95, 'Stok P001 harus turun menjadi 95');
+    } finally {
+        SnapshotResetter::resetLabDatabase();
+    }
+});
+
 echo "\nSummary: {$passed} passed, {$failed} failed.\n";
 exit($failed > 0 ? 1 : 0);
