@@ -10,6 +10,7 @@ require_once dirname(__DIR__) . '/app/services/ProgressService.php';
 require_once dirname(__DIR__) . '/app/services/CustomModuleService.php';
 require_once dirname(__DIR__) . '/app/services/ExtraModuleService.php';
 require_once dirname(__DIR__) . '/app/services/QuizEngine.php';
+require_once dirname(__DIR__) . '/app/services/SimulatorSandbox.php';
 
 if (session_status() === PHP_SESSION_NONE) {
     @session_start();
@@ -266,6 +267,54 @@ test_case('render_acrylic_code highlights SQL safely and escapes XSS', function 
     assert_true(str_contains($html, 'tok-keyword'), 'Harus menyorot keyword SQL');
     assert_true(!str_contains($html, '<script>'), 'Tag script mentah tidak boleh lolos');
     assert_true(str_contains($html, '&lt;script&gt;'), 'Tag script harus di-escape');
+});
+
+test_case('SimulatorSandbox runs all 11 whitelisted scenarios & resets cleanly', function (): void {
+    assert_true(count(SimulatorSandbox::scenarios()) === 11, 'Harus ada 11 skenario whitelist');
+    $bad = SimulatorSandbox::run('drop_all_tables');
+    assert_true($bad['ok'] === false && !empty($bad['error']), 'Skenario tidak dikenal harus ditolak');
+
+    SnapshotResetter::resetLabDatabase();
+    try {
+        $m1 = SimulatorSandbox::run('m1_norm_stepper', ['stage' => '3nf']);
+        assert_true($m1['ok'] === true && ($m1['trace']['kind'] ?? '') === 'normalization', 'm1_norm_stepper harus mengembalikan fixture 3nf');
+
+        $m2fk = SimulatorSandbox::run('m2_constraint_fk', ['nonota' => '9999999999', 'kode_produk' => 'P999']);
+        assert_true($m2fk['ok'] === false && !empty($m2fk['error']), 'm2_constraint_fk harus menangkap pelanggaran FK');
+
+        $m2uq = SimulatorSandbox::run('m2_constraint_uq', ['nama_produk' => 'Indomie goreng special']);
+        assert_true($m2uq['ok'] === false && !empty($m2uq['error']), 'm2_constraint_uq harus menangkap pelanggaran UNIQUE');
+
+        $m3j = SimulatorSandbox::run('m3_join_inner_left', ['join_type' => 'left']);
+        assert_true($m3j['ok'] === true && ($m3j['trace']['kind'] ?? '') === 'venn' && count($m3j['after']) >= 4, 'm3_join_inner_left harus berhasil');
+
+        $m3v = SimulatorSandbox::run('m3_view_select', ['view_name' => 'viewdetailtransaksi']);
+        assert_true($m3v['ok'] === true && count($m3v['after']) >= 1, 'm3_view_select harus mengembalikan baris');
+
+        $m3cf = SimulatorSandbox::run('m3_control_flow', ['func' => 'case']);
+        assert_true($m3cf['ok'] === true && count($m3cf['after']) >= 1, 'm3_control_flow harus berhasil');
+
+        $m4udf = SimulatorSandbox::run('m4_udf_cek_stok', ['kode_produk' => 'P001']);
+        assert_true($m4udf['ok'] === true && (int) ($m4udf['after'][0]['cekstok'] ?? 0) === 97, 'fcCekStok P001 awal harus 97');
+
+        $m4sp = SimulatorSandbox::run('m4_sp_bonus_point');
+        assert_true($m4sp['ok'] === true && ($m4sp['trace']['kind'] ?? '') === 'cursor' && count($m4sp['trace']['rows']) >= 2, 'ProcBonusPoint harus menghasilkan cursor trace');
+
+        $m5ins = SimulatorSandbox::run('m5_tg_insert_item', ['kode_produk' => 'P001', 'banyak' => 2]);
+        assert_true($m5ins['ok'] === true, 'tg_produk_dijual insert harus berhasil');
+        $p001AfterIns = array_values(array_filter($m5ins['after'], static fn (array $r): bool => $r['KodeProduk'] === 'P001'));
+        assert_true((int) ($p001AfterIns[0]['stok'] ?? 0) === 95, 'Stok P001 harus berkurang 97 -> 95');
+
+        $m5del = SimulatorSandbox::run('m5_tg_delete_item', ['nonota' => '2611130001', 'kode_produk' => 'P001']);
+        assert_true($m5del['ok'] === true, 'tg_batal_jual delete harus berhasil');
+        $p001AfterDel = array_values(array_filter($m5del['after'], static fn (array $r): bool => $r['KodeProduk'] === 'P001'));
+        assert_true((int) ($p001AfterDel[0]['stok'] ?? 0) === 97, 'Stok P001 harus kembali 95 -> 97');
+
+        $m5upd = SimulatorSandbox::run('m5_tg_update_kasir', ['kode_kasir' => '001', 'pass_baru' => 'tes123']);
+        assert_true($m5upd['ok'] === true && count($m5upd['after']) >= 1, 'tg_update_kasir harus menulis logkasir');
+    } finally {
+        SnapshotResetter::resetLabDatabase();
+    }
 });
 
 echo "\nSummary: {$passed} passed, {$failed} failed.\n";
