@@ -1,0 +1,10 @@
+.git
+.env
+*.pdf
+Penting.txt
+Promp memilih skil.txt
+storage/logs/*.log
+storage/uploads/*
+vendor
+.DS_Store
+Thumbs.db

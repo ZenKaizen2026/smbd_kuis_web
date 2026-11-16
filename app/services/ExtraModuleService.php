@@ -251,7 +251,8 @@ final class ExtraModuleService
     private static function parsePdf(string $filePath, string $customTitle, string $origName): array
     {
         $extracted = '';
-        $cmd = 'pdftotext -layout ' . escapeshellarg($filePath) . ' - 2>NUL';
+        $nullDevice = PHP_OS_FAMILY === 'Windows' ? 'NUL' : '/dev/null';
+        $cmd = 'pdftotext -layout ' . escapeshellarg($filePath) . ' - 2>' . $nullDevice;
         $output = @shell_exec($cmd);
         if (is_string($output) && trim($output) !== '') {
             $extracted = trim($output);
