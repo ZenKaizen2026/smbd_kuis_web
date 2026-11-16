@@ -69,7 +69,7 @@ $renderDataTable = static function (array $rows, string $emptyMsg = 'Tidak ada b
 
   <div class="sim-grid">
     <!-- Kolom Kiri: Daftar Misi Praktek & Referensi Normalisasi -->
-    <section class="card card-floating p-6">
+    <section class="card card-floating p-6 mb-5">
       <h2 class="text-base font-bold mb-3" style="margin-top:0;">Misi Praktek Modul 0<?= $modulNo ?></h2>
       <div class="flex flex-col gap-3">
         <?php foreach ($modulScenarios as $idx => $s): ?>
