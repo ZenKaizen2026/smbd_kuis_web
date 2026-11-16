@@ -21,7 +21,7 @@ foreach ($catalog as $m) {
     }
 }
 if ($activeModule === null) {
-    $activeModule = $catalog[0];
+    $activeModule = reset($catalog) ?: ['no' => 1, 'title' => 'Modul 1'];
     $modulNo = (int) $activeModule['no'];
 }
 
