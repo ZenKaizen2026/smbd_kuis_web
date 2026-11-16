@@ -1,0 +1,40 @@
+services:
+  db:
+    image: mariadb:10.11
+    restart: unless-stopped
+    environment:
+      MARIADB_ROOT_PASSWORD: "${DB_PASS:-smbd_root_pass_change_me}"
+      MARIADB_CHARACTER_SET_SERVER: utf8mb4
+      MARIADB_COLLATION_SERVER: utf8mb4_general_ci
+    command: --log-bin-trust-function-creators=1
+    volumes:
+      - smbd_db_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+
+  web:
+    build: .
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "8080:80"
+    environment:
+      DB_HOST: db
+      DB_PORT: "3306"
+      DB_USER: "${DB_USER:-root}"
+      DB_PASS: "${DB_PASS:-smbd_root_pass_change_me}"
+      DB_APP_NAME: "${DB_APP_NAME:-db_smbd_kuis}"
+      DB_LAB_NAME: "${DB_LAB_NAME:-db_penjualan_lab}"
+    volumes:
+      - smbd_uploads:/var/www/html/storage/uploads
+      - smbd_logs:/var/www/html/storage/logs
+
+volumes:
+  smbd_db_data:
+  smbd_uploads:
+  smbd_logs:
