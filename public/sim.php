@@ -20,13 +20,7 @@ if (!in_array($selectedScenarioId, $validIds, true)) {
     $selectedScenarioId = $modulScenarios[0]['id'] ?? '';
 }
 
-$activeModule = $catalog[0];
-foreach ($catalog as $m) {
-    if ((int) $m['no'] === $modulNo) {
-        $activeModule = $m;
-        break;
-    }
-}
+$activeModule = $catalog[$modulNo] ?? reset($catalog) ?: [];
 
 $error = null;
 
