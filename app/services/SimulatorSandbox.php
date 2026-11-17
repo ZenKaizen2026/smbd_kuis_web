@@ -699,9 +699,9 @@ final class SimulatorSandbox
         if (!preg_match('/^(SELECT|INSERT|UPDATE|DELETE|CALL|SHOW|DESCRIBE|DESC|EXPLAIN)\b/i', $trimmed)) {
             return ['ok' => false, 'sql' => '', 'error' => 'Hanya perintah SELECT, INSERT, UPDATE, DELETE, CALL, SHOW, atau DESCRIBE yang diizinkan di sandbox.'];
         }
-        $blocked = '/\b(DROP|TRUNCATE|ALTER|CREATE|GRANT|REVOKE|RENAME|REPLACE|LOAD_FILE|OUTFILE|DUMPFILE|INFORMATION_SCHEMA|PERFORMANCE_SCHEMA|MYSQL|DB_SMBD_KUIS|SLEEP|BENCHMARK)\b/i';
+        $blocked = '/(?:@@|\b(?:DROP|TRUNCATE|ALTER|CREATE|GRANT|REVOKE|RENAME|REPLACE|LOAD|LOAD_FILE|OUTFILE|DUMPFILE|INFORMATION_SCHEMA|PERFORMANCE_SCHEMA|SYS|MYSQL|DB_SMBD_KUIS|SLEEP|BENCHMARK|CURRENT_USER|SESSION_USER|SYSTEM_USER)\b|\b(?:USER|VERSION)\s*\()/i';
         if (preg_match($blocked, $trimmed, $m)) {
-            return ['ok' => false, 'sql' => '', 'error' => 'Kata kunci `' . strtoupper($m[1]) . '` diblokir demi keamanan database lab.'];
+            return ['ok' => false, 'sql' => '', 'error' => 'Ekspresi `' . strtoupper($m[0]) . '` diblokir demi keamanan database lab.'];
         }
 
         return ['ok' => true, 'sql' => $trimmed, 'error' => null];

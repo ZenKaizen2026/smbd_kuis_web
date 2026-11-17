@@ -33,7 +33,7 @@ declare(strict_types=1);
           name="username"
           class="form-input"
           value="<?= e($oldUsername ?? '') ?>"
-          placeholder="Contoh: mahasiswa_demo"
+          placeholder="Masukkan username atau NIM"
           autocomplete="username"
           required
           autofocus
@@ -55,11 +55,6 @@ declare(strict_types=1);
 
       <button type="submit" class="btn btn-primary w-full">Masuk ke Dashboard</button>
     </form>
-
-    <div class="sql-panel mt-6">
-      <div class="text-xs" style="color:#94A3B8;margin-bottom:0.25rem;">-- Akun Demo Seeder</div>
-      <code>Username: <strong>mahasiswa_demo</strong> | Pass: <strong>demo1234</strong></code>
-    </div>
 
     <p class="text-sm text-center text-muted mt-6" style="margin-bottom:0;">
       Belum punya akun? <a href="register.php" class="link">Daftar Mahasiswa</a>
