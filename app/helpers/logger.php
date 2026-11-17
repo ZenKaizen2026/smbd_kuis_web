@@ -17,4 +17,7 @@ function app_log(string $level, string $message, array $context = []): void
     $line = "[{$timestamp}] [{$level}] {$message}{$ctxStr}" . PHP_EOL;
 
     @file_put_contents($logFile, $line, FILE_APPEND | LOCK_EX);
+    if (in_array(strtoupper($level), ['ERROR', 'WARNING'], true)) {
+        @error_log(trim($line));
+    }
 }

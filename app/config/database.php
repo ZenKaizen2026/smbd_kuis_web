@@ -75,7 +75,8 @@ function get_db_connection(string $dbKey = 'app'): PDO
         PDO::ATTR_EMULATE_PREPARES   => false,
     ];
 
-    if (!empty($cfg['ssl'])) {
+    $useSsl = !empty($cfg['ssl']) || str_ends_with(strtolower($cfg['host']), '.aivencloud.com');
+    if ($useSsl) {
         $caPath = $cfg['ssl_ca'];
         if ($caPath === '' && $cfg['ssl_ca_pem'] !== '') {
             $tmpPem = sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'smbd_aiven_ca.pem';
@@ -86,6 +87,8 @@ function get_db_connection(string $dbKey = 'app'): PDO
         }
         if ($caPath !== '' && is_file($caPath) && defined('PDO::MYSQL_ATTR_SSL_CA')) {
             $options[PDO::MYSQL_ATTR_SSL_CA] = $caPath;
+        } elseif (defined('PDO::MYSQL_ATTR_SSL_CIPHER')) {
+            $options[PDO::MYSQL_ATTR_SSL_CIPHER] = 'DEFAULT';
         }
         if (defined('PDO::MYSQL_ATTR_SSL_VERIFY_SERVER_CERT')) {
             $options[PDO::MYSQL_ATTR_SSL_VERIFY_SERVER_CERT] = !empty($cfg['ssl_verify']) && $caPath !== '';
