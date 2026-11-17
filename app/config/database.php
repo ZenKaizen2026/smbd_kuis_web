@@ -35,8 +35,9 @@ function db_config(): array
         'user'    => $get('DB_USER', 'root'),
         'pass'    => $get('DB_PASS', ''),
         'charset' => 'utf8mb4',
-        'ssl'     => strtolower($get('DB_SSL', 'false')) === 'true',
-        'ssl_ca'  => $get('DB_SSL_CA', ''),
+        'ssl'        => strtolower($get('DB_SSL', 'false')) === 'true',
+        'ssl_ca'     => $get('DB_SSL_CA', ''),
+        'ssl_ca_pem' => $get('DB_SSL_CA_PEM', ''),
         'ssl_verify' => strtolower($get('DB_SSL_VERIFY', 'false')) === 'true',
         'dbs'     => [
             'app' => $get('DB_APP_NAME', 'db_smbd_kuis'),
@@ -75,12 +76,19 @@ function get_db_connection(string $dbKey = 'app'): PDO
     ];
 
     if (!empty($cfg['ssl'])) {
-        $caPath = $cfg['ssl_ca'] !== '' ? $cfg['ssl_ca'] : '/etc/ssl/certs/ca-certificates.crt';
-        if (is_file($caPath) && defined('PDO::MYSQL_ATTR_SSL_CA')) {
+        $caPath = $cfg['ssl_ca'];
+        if ($caPath === '' && $cfg['ssl_ca_pem'] !== '') {
+            $tmpPem = sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'smbd_aiven_ca.pem';
+            if (!is_file($tmpPem)) {
+                @file_put_contents($tmpPem, str_replace('\n', "\n", $cfg['ssl_ca_pem']));
+            }
+            $caPath = $tmpPem;
+        }
+        if ($caPath !== '' && is_file($caPath) && defined('PDO::MYSQL_ATTR_SSL_CA')) {
             $options[PDO::MYSQL_ATTR_SSL_CA] = $caPath;
         }
         if (defined('PDO::MYSQL_ATTR_SSL_VERIFY_SERVER_CERT')) {
-            $options[PDO::MYSQL_ATTR_SSL_VERIFY_SERVER_CERT] = !empty($cfg['ssl_verify']);
+            $options[PDO::MYSQL_ATTR_SSL_VERIFY_SERVER_CERT] = !empty($cfg['ssl_verify']) && $caPath !== '';
         }
     }
 

@@ -48,8 +48,12 @@ function app_pdo(): PDO
                     register_user($pdo, 'mahasiswa_demo', 'Mahasiswa Demo SI167', 'demo1234');
                 }
 
-                require_once dirname(__DIR__) . '/services/SnapshotResetter.php';
-                SnapshotResetter::resetLabDatabase($serverPdo);
+                try {
+                    require_once dirname(__DIR__) . '/services/SnapshotResetter.php';
+                    SnapshotResetter::resetLabDatabase($serverPdo);
+                } catch (Throwable $labErr) {
+                    app_log('WARNING', 'Auto-bootstrap lab database partial failure', ['error' => $labErr->getMessage()]);
+                }
                 return $pdo;
             } catch (Throwable $initErr) {
                 app_log('ERROR', 'Auto-bootstrap database failed', ['error' => $initErr->getMessage()]);
