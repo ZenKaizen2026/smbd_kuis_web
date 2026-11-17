@@ -25,3 +25,5 @@ RUN mkdir -p /var/www/html/storage/logs /var/www/html/storage/uploads \
     && chmod -R 775 /var/www/html/storage
 
 EXPOSE 80
+
+CMD ["sh", "-c", "PORT=${PORT:-80}; sed -ri \"s/Listen 80/Listen ${PORT}/g\" /etc/apache2/ports.conf && sed -ri \"s/<VirtualHost \\*:80>/<VirtualHost *:${PORT}>/g\" /etc/apache2/sites-available/000-default.conf && exec apache2-foreground"]

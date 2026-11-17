@@ -1,0 +1,20 @@
+services:
+  - type: web
+    name: smbd-kuis-web
+    runtime: docker
+    plan: free
+    autoDeploy: true
+    healthCheckPath: /login.php
+    envVars:
+      - key: DB_HOST
+        sync: false
+      - key: DB_PORT
+        value: "3306"
+      - key: DB_USER
+        sync: false
+      - key: DB_PASS
+        sync: false
+      - key: DB_APP_NAME
+        value: db_smbd_kuis
+      - key: DB_LAB_NAME
+        value: db_penjualan_lab

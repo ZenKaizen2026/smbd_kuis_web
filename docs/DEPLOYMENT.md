@@ -103,3 +103,19 @@ Cocok untuk VPS, server lokal kampus, atau cloud VM dengan Docker.
 - [ ] `DocumentRoot` mengarah ke `public/` sehingga `app/`, `sql/`, `storage/`, dan `.env` tidak dapat diakses via URL.
 - [ ] `display_errors` bernilai `Off` di production (sudah diatur di `public/.htaccess` dan `Dockerfile`).
 - [ ] Ganti password akun `mahasiswa_demo` atau batasi akses admin jika dipakai untuk kelas live.
+
+---
+
+## Opsi D: Render (Free Docker) + Aiven (Free MySQL)
+
+1. **Buat database MySQL gratis di Aiven** (`console.aiven.io`):
+   - Pilih service **MySQL** (Free plan), lalu catat **Host**, **Port**, **User** (`avnadmin`), dan **Password**.
+2. **Deploy Web App di Render** (`dashboard.render.com`):
+   - Klik **New +** → **Blueprint** (atau **Web Service**), hubungkan repo GitHub `ZenKaizen2026/smbd_kuis_web`.
+   - Render otomatis membaca `render.yaml` dan `Dockerfile`.
+   - Masukkan Environment Variables dari Aiven: `DB_HOST`, `DB_PORT`, `DB_USER`, `DB_PASS`, `DB_APP_NAME=db_smbd_kuis`, `DB_LAB_NAME=db_penjualan_lab`.
+3. **Inisialisasi Database**:
+   - Setelah deploy selesai, buka tab **Shell** di Render (atau jalankan dari lokal dengan `.env` mengarah ke Aiven):
+     ```bash
+     php sql/install_and_seed.php
+     ```
