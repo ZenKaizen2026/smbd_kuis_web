@@ -326,6 +326,9 @@ test_case('SimulatorSandbox::executePracticeQuery validates safety, SQL executio
         $multi = SimulatorSandbox::executePracticeQuery('m1_norm_stepper', 'SELECT * FROM nota; DELETE FROM nota;');
         assert_true($multi['ok'] === false && $multi['matched_instruction'] === false, 'Multi-statement harus diblokir');
 
+        $probe = SimulatorSandbox::executePracticeQuery('m1_norm_stepper', 'SELECT @@version, USER();');
+        assert_true($probe['ok'] === false && $probe['matched_instruction'] === false, 'Probe @@version / USER() harus diblokir');
+
         $fk = SimulatorSandbox::executePracticeQuery('m2_constraint_fk', "INSERT INTO itemnota (Nonota, KodeProduk, banyak, hargajual) VALUES ('9999999999', 'P999', 1, 2500);");
         assert_true($fk['matched_instruction'] === true, 'Praktek FK harus mendeteksi error FK sebagai tepat');
 

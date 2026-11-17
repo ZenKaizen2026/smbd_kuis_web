@@ -35,6 +35,9 @@ function db_config(): array
         'user'    => $get('DB_USER', 'root'),
         'pass'    => $get('DB_PASS', ''),
         'charset' => 'utf8mb4',
+        'ssl'     => strtolower($get('DB_SSL', 'false')) === 'true',
+        'ssl_ca'  => $get('DB_SSL_CA', ''),
+        'ssl_verify' => strtolower($get('DB_SSL_VERIFY', 'false')) === 'true',
         'dbs'     => [
             'app' => $get('DB_APP_NAME', 'db_smbd_kuis'),
             'lab' => $get('DB_LAB_NAME', 'db_penjualan_lab'),
@@ -65,9 +68,21 @@ function get_db_connection(string $dbKey = 'app'): PDO
         $dsn .= ';dbname=' . $cfg['dbs'][$dbKey];
     }
 
-    return new PDO($dsn, $cfg['user'], $cfg['pass'], [
+    $options = [
         PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
         PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
         PDO::ATTR_EMULATE_PREPARES   => false,
-    ]);
+    ];
+
+    if (!empty($cfg['ssl'])) {
+        $caPath = $cfg['ssl_ca'] !== '' ? $cfg['ssl_ca'] : '/etc/ssl/certs/ca-certificates.crt';
+        if (is_file($caPath) && defined('PDO::MYSQL_ATTR_SSL_CA')) {
+            $options[PDO::MYSQL_ATTR_SSL_CA] = $caPath;
+        }
+        if (defined('PDO::MYSQL_ATTR_SSL_VERIFY_SERVER_CERT')) {
+            $options[PDO::MYSQL_ATTR_SSL_VERIFY_SERVER_CERT] = !empty($cfg['ssl_verify']);
+        }
+    }
+
+    return new PDO($dsn, $cfg['user'], $cfg['pass'], $options);
 }

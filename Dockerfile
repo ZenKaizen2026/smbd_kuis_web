@@ -13,9 +13,15 @@ RUN sed -ri -e 's!/var/www/html!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/sites-av
 RUN { \
       echo "display_errors=Off"; \
       echo "log_errors=On"; \
+      echo "expose_php=Off"; \
       echo "upload_max_filesize=8M"; \
       echo "post_max_size=10M"; \
-    } > /usr/local/etc/php/conf.d/smbd-prod.ini
+    } > /usr/local/etc/php/conf.d/smbd-prod.ini \
+    && { \
+      echo "ServerTokens Prod"; \
+      echo "ServerSignature Off"; \
+    } > /etc/apache2/conf-available/smbd-security.conf \
+    && a2enconf smbd-security
 
 WORKDIR /var/www/html
 COPY . /var/www/html

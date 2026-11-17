@@ -18,3 +18,5 @@ services:
         value: db_smbd_kuis
       - key: DB_LAB_NAME
         value: db_penjualan_lab
+      - key: DB_SSL
+        value: "true"
