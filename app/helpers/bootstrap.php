@@ -30,7 +30,7 @@ function app_pdo(): PDO
         echo '<body style="font-family:system-ui,sans-serif;background:#EEF2FF;color:#1E1B4B;padding:2rem;">';
         echo '<div style="max-width:540px;margin:3rem auto;background:#fff;padding:2rem;border-radius:12px;border:1px solid #C7D2FE;">';
         echo '<h1 style="margin-top:0;font-size:1.25rem;">Koneksi Database Belum Siap</h1>';
-        echo '<p>Pastikan service <strong>MySQL XAMPP</strong> aktif dan skrip setup database sudah dijalankan.</p>';
+        echo '<p>Pastikan layanan database aktif dan inisialisasi skema database sudah dijalankan.</p>';
         echo '</div></body></html>';
         exit;
     }
